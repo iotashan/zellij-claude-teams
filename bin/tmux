@@ -150,7 +150,18 @@ stack_agent_panes() {
         zid=$(cat "$id_file" 2>/dev/null)
         [ -n "$zid" ] && [ "$zid" != "unknown" ] && ids+=("$zid")
     done
-    if [ ${#ids[@]} -ge 2 ]; then
+    # Opt-in anchor: when ZELLIJ_TMUX_SHIM_STACK_TARGET is set to an existing
+    # pane id (e.g. "terminal_1" — a layout's shell pane), agent panes are
+    # stacked BEHIND that pane instead of only with each other, so they never
+    # carve out their own tile or shrink the main panes. A single agent stacks
+    # immediately (anchor + agent = 2 panes for zellij's stack-panes).
+    local anchor="${ZELLIJ_TMUX_SHIM_STACK_TARGET:-}"
+    if [ -n "$anchor" ]; then
+        if [ ${#ids[@]} -ge 1 ]; then
+            zellij action stack-panes -- "$anchor" "${ids[@]}" 2>/dev/null || true
+            log_debug "stack_agent_panes: stacked ${ids[*]} behind anchor ${anchor}"
+        fi
+    elif [ ${#ids[@]} -ge 2 ]; then
         zellij action stack-panes -- "${ids[@]}" 2>/dev/null || true
         log_debug "stack_agent_panes: stacked ${ids[*]}"
     fi
@@ -360,6 +371,10 @@ split-window)
     # If no inline command, DON'T move focus — the agent pane keeps focus so
     # the subsequent send-keys → wrapper → rename-pane targets the right pane.
     # send-keys will move focus back after the rename is locked.
+
+    # Opt-in: gather agent panes into the anchor pane's stack
+    # (ZELLIJ_TMUX_SHIM_STACK_TARGET — see stack_agent_panes).
+    [ -n "${ZELLIJ_TMUX_SHIM_STACK_TARGET:-}" ] && stack_agent_panes
 
     # Print pane ID if -P was given
     if [ "$sw_print" = true ]; then
@@ -626,6 +641,10 @@ new-window)
     fi
     # If no inline command, DON'T move focus — send-keys will handle it
     # after the wrapper renames the pane.
+
+    # Opt-in: gather agent panes into the anchor pane's stack
+    # (ZELLIJ_TMUX_SHIM_STACK_TARGET — see stack_agent_panes).
+    [ -n "${ZELLIJ_TMUX_SHIM_STACK_TARGET:-}" ] && stack_agent_panes
 
     if [ "$nw_print" = true ]; then
         echo "$NEW_PANE_ID"

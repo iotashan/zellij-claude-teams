@@ -96,6 +96,7 @@ bash install.sh --uninstall
 | Variable | Default | Description |
 |---|---|---|
 | `ZELLIJ_TMUX_SHIM_DEBUG` | unset | Set to `1` to log all tmux calls to `$STATE_DIR/shim.log` |
+| `ZELLIJ_TMUX_SHIM_STACK_TARGET` | unset | Pane id (e.g. `terminal_1`) to anchor agent panes to: every agent pane is stacked BEHIND this pane (zellij `stack-panes`) instead of tiling on its own, so agents live as collapsed title bars in that pane's stack. Unset = upstream behavior. |
 
 ## Features
 
